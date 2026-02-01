@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sesi Tanya Jawab </title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           1. CORE STYLES (MATCHING INDEX.HTML)
+           ========================================= */
+        :root {
+            --primary-gold: #00d4ff;
+            --gold-glow: #005f73;
+            --accent-blue: #00f2ff;
+            --deep-bg: #000000;
+            --glass-bg: rgba(20, 20, 20, 0.60);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            cursor: none !important;
+        }
+
+        body, html {
+            height: 100%; width: 100%; overflow: hidden;
+            background-color: var(--deep-bg);
+            color: var(--text-main);
+            font-family: 'Lato', sans-serif;
+        }
+
+        /* --- NOISE OVERLAY --- */
+        .noise-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 900; opacity: 0.4; mix-blend-mode: overlay;
+        }
+
+        /* --- CUSTOM CURSOR --- */
+        #cursor-dot {
+            position: fixed; top: 0; left: 0;
+            width: 3px; height: 3px;
+            background-color: var(--primary-gold);
+            box-shadow: 0 0 5px var(--primary-gold);
+            border-radius: 50%; pointer-events: none; z-index: 9999;
+            transform: translate(-50%, -50%); display: none;
+        }
+        #cursor-ring {
+            position: fixed; top: 0; left: 0;
+            width: 12px; height: 12px;
+            border: 0.5px solid rgba(0, 212, 255, 0.15);
+            border-radius: 50%; pointer-events: none; z-index: 9999;
+            transform: translate(-50%, -50%); 
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+            mix-blend-mode: difference; display: none;
+        }
+        @media (pointer: fine) { #cursor-dot, #cursor-ring { display: block; } }
+        
+        body.is-hovering #cursor-ring {
+            width: 40px; height: 40px;
+            background-color: #00d4ff;
+            border-color: var(--primary-gold);
+        }
+
+        /* --- TRANSITIONS & BG --- */
+        .page-transition-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 2000; pointer-events: none;
+            animation: warpFlash 1.5s var(--ease-out-expo) forwards;
+        }
+
+        @keyframes warpFlash {
+            0% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+
+        .qa-container {
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            height: 100vh; width: 100%;
+            perspective: 1000px;
+            position: relative; z-index: 10;
+        }
+
+        .ambient-glow {
+            position: absolute; top: 50%; left: 50%;
+            width: 80vw; height: 80vh;
+            background: radial-gradient(circle, #00d4ff, transparent 70%);
+            transform: translate(-50%, -50%);
+            filter: blur(80px);
+            animation: pulseGlow 5s infinite alternate;
+            z-index: -1;
+        }
+
+        /* --- TYPOGRAPHY (JUDUL DIKECILKAN) --- */
+        .qa-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 900;
+            font-size: clamp(2.5rem, 6vw, 5rem); 
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+            text-transform: uppercase;
+            position: relative;
+            letter-spacing: -2px;
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: scale(2) translateZ(100px);
+            filter: blur(20px);
+            animation: textImpact 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+            animation-delay: 0.2s;
+        }
+
+        .qa-title span {
+            display: inline-block;
+            background: linear-gradient(to bottom, #fff, var(--primary-gold));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            -webkit-text-stroke: 0;
+        }
+
+        .qa-line {
+            width: 0; height: 2px;
+            background: var(--primary-gold);
+            box-shadow: 0 0 20px var(--primary-gold);
+            margin-bottom: 30px;
+            animation: lineExpand 1s var(--ease-out-expo) forwards;
+            animation-delay: 1s;
+        }
+
+        .qa-subtitle {
+            font-size: 1.2rem; color: #ccc;
+            opacity: 0; transform: translateY(20px);
+            animation: fadeInUp 1s var(--ease-out-expo) forwards;
+            animation-delay: 1.2s;
+            letter-spacing: 2px;
+        }
+
+        /* --- BUTTONS --- */
+        .interaction-area {
+            margin-top: 50px;
+            display: flex; flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            opacity: 0; transform: translateY(30px);
+            animation: fadeInUp 1s var(--ease-out-expo) forwards;
+            animation-delay: 1.5s;
+            width: 100%;
+        }
+
+        .btn-group {
+            display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;
+        }
+
+        .btn-gold {
+            padding: 15px 35px;
+            background: #000000;
+            border: 1px solid var(--primary-gold);
+            color: var(--primary-gold);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 50px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+
+        .btn-gold:hover {
+            background: var(--primary-gold);
+            color: #000;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.15);
+            transform: scale(1.05);
+        }
+
+        .btn-gold.listening {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #ff4444;
+            color: #ff4444;
+            animation: pulseRecord 1.5s infinite;
+        }
+
+        .btn-outline {
+            padding: 15px 30px;
+            background: transparent;    
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            border-radius: 50px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .btn-outline:hover {
+            border-color: #fff;
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Tombol Hapus Spesifik */
+        .btn-delete {
+            opacity: 0.5;
+            font-size: 0.9rem;
+        }
+        .btn-delete:hover {
+            border-color: #ff4444;
+            color: #ff4444;
+            opacity: 1;
+        }
+
+        /* --- RESULT BOX (HIGHLIGHTED) --- */
+        #transcription-container {
+            width: 85%;
+            max-width: 650px;
+            min-height: 0;
+            height: 0;
+            overflow: hidden;
+            background: var(--glass-bg);
+            border: 1px solid var(--primary-gold);
+            border-radius: 20px;
+            margin-top: 20px;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.6s var(--ease-out-expo);
+            backdrop-filter: blur(15px);
+        }
+
+        #transcription-container.active {
+            min-height: 120px;
+            height: auto;
+            padding: 25px;
+            opacity: 1;
+            box-shadow: 0 0 40px #005f73;
+        }
+
+        #speech-text {
+            font-family: 'Lato', sans-serif;
+            font-size: 1.6rem; 
+            color: var(--primary-gold); 
+            font-weight: 700; 
+            line-height: 1.4;
+            text-shadow: 0 0 15px #005f73;
+        }
+
+        #speech-status {
+            font-size: 0.75rem;
+            color: #00d4ff;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 700;
+            display: block;
+        }
+
+        .giant-q {
+            position: absolute;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 900;
+            font-size: 40vh;
+            color: rgba(255, 255, 255, 0.02);
+            z-index: -2;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation: slowRotate 20s linear infinite;
+            pointer-events: none;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes textImpact { 0% { opacity: 0; transform: scale(3); filter: blur(40px); } 100% { opacity: 1; transform: scale(1); filter: blur(0); } }
+        @keyframes lineExpand { 0% { width: 0; } 100% { width: 150px; } }
+        @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseGlow { 0% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.8); } 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.2); } }
+        @keyframes slowRotate { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+        @keyframes pulseRecord { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); } 70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(255, 68, 68, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); } }
+
+        .star { position: absolute; background: white; border-radius: 50%; opacity: 0; animation: twinkle 3s infinite ease-in-out; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+
+        
+    </style>
+</head>
+<body>
+
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+    <div class="page-transition-overlay"></div>
+    <div class="noise-overlay"></div>
+    <div class="ambient-glow"></div>
+    <div class="giant-q">?</div>
+    <div id="star-container"></div>
+
+    <div class="qa-container">
+        <h1 class="qa-title">AYO <span>BERTANYA</span></h1>
+        <div class="qa-line"></div>
+        <p class="qa-subtitle">AYO Diskusikan topik Kebijakan Perdagangan Internasional lebih dalam.</p>
+        <div class="interaction-area">
+            <div class="btn-group">
+                <a href="index.html" class="btn-outline hover-trigger">&larr; Kembali</a>               
+                <a href="#" class="btn-gold hover-trigger" id="btn-ask" onclick="toggleSpeech(event)">Saya Ingin Bertanya</a>               
+                <a href="#" class="btn-outline btn-delete hover-trigger" id="btn-clear" onclick="clearQuestion(event)">Hapus Teks</a>
+            </div>
+
+            <div id="transcription-container">
+                <span id="speech-status">Mendengarkan...</span>
+                <p id="speech-text">Silakan bicara sekarang...</p>
+            </div>
+
+
+        </div>
+    </div>
+    <script>
+        // --- CURSOR & STARS ---
+        const cursorDot = document.getElementById('cursor-dot');
+        const cursorRing = document.getElementById('cursor-ring');
+        let mouseX = -100, mouseY = -100, cursorX = -100, cursorY = -100;
+        document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+        function animateCursor() {
+            cursorX += (mouseX - cursorX) * 0.15; cursorY += (mouseY - cursorY) * 0.15;
+            cursorDot.style.transform = `translate(${mouseX}px, ${mouseY}px) translate(-50%, -50%)`;
+            cursorRing.style.transform = `translate(${cursorX}px, ${cursorY}px) translate(-50%, -50%)`;
+            requestAnimationFrame(animateCursor);
+        }
+        if(window.matchMedia("(pointer: fine)").matches) animateCursor();
+
+        const starContainer = document.getElementById('star-container');
+        for(let i=0; i<50; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 3;
+            star.style.width = size + 'px'; star.style.height = size + 'px';
+            star.style.left = Math.random() * 100 + 'vw'; star.style.top = Math.random() * 100 + 'vh';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starContainer.appendChild(star);
+        }
+        
+
+        const triggers = document.querySelectorAll('.hover-trigger');
+        triggers.forEach(t => {
+            t.addEventListener('mouseenter', () => document.body.classList.add('is-hovering'));
+            t.addEventListener('mouseleave', () => document.body.classList.remove('is-hovering'));
+        });
+
+        // --- SPEECH RECOGNITION ---
+        const btnAsk = document.getElementById('btn-ask');
+        const transcriptionContainer = document.getElementById('transcription-container');
+        const speechText = document.getElementById('speech-text');
+        const speechStatus = document.getElementById('speech-status');
+        
+        let recognition;
+        let isListening = false;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'id-ID';
+            recognition.interimResults = true;
+            recognition.continuous = false;
+
+            recognition.onstart = function() {
+                isListening = true;
+                btnAsk.classList.add('listening');
+                btnAsk.innerText = "Mendengarkan...";
+                transcriptionContainer.classList.add('active');
+                speechStatus.innerText = "Mendengarkan...";
+                speechText.innerText = "";
+            };
+
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        speechText.innerText = event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                        speechText.innerText = interimTranscript;
+                    }
+                }
+            };
+
+            recognition.onend = function() {
+                isListening = false;
+                btnAsk.classList.remove('listening');
+                btnAsk.innerText = "Saya Ingin Bertanya";
+                speechStatus.innerText = "Pertanyaan Tercatat:";
+            };
+        }
+
+        function toggleSpeech(e) {
+            e.preventDefault();
+            if (!recognition) return alert("Browser tidak mendukung fitur ini.");
+            isListening ? recognition.stop() : recognition.start();
+        }
+
+        // --- FUNGSI HAPUS (BARU) ---
+        function clearQuestion(e) {
+            e.preventDefault();
+            // Reset Teks
+            speechText.innerText = "Silakan bicara sekarang...";
+            speechStatus.innerText = "Mendengarkan...";
+            // Sembunyikan Kontainer dengan animasi halus
+            transcriptionContainer.classList.remove('active');
+            
+            // Logika tambahan agar tombol kembali ke state awal
+            if(isListening) {
+                recognition.stop();
+            }
+        }
+    </script>
+
+    
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
